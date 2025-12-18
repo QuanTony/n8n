@@ -1,0 +1,41 @@
+#服务端口
+spring:
+  profiles:
+    active: prd
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: 10MB  # 单个文件的大小
+      max-request-size: 100MB  # 上传文件的总大小
+      location: /root/work/server/tmp
+  freemarker:
+    cache: false
+    suffix: .html
+    template-loader-path: classpath:/templates
+    content-type: text/html; charset=utf-8
+    settings:
+      number_format: 0
+
+# PageHelper分页插件
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql
+
+logging:
+  level:
+    com.project.assemblyline.dao: DEBUG
+
+async:
+  thread:
+    pool:
+      corePoolSize: 8
+
+
+

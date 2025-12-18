@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自然语言数据库查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section label {
+            display: block;
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .query-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .result-section {
+            margin-top: 40px;
+        }
+
+        .result-section h2 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-container {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 200px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .result-content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e5e7eb;
+            border-top: 5px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .examples h3 {
+            color: #0369a1;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .example-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .example-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #e0f2fe;
+        }
+
+        .example-item:hover {
+            background: #e0f2fe;
+            transform: translateX(5px);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+            font-size: 0.9rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📊 自然语言数据库查询</h1>
+        <p>使用自然语言查询数据库，无需编写SQL语句</p>
+    </div>
+
+    <div class="content">
+        <div class="input-section">
+            <label for="queryInput">请输入您的问题：</label>
+            <textarea
+                    id="queryInput"
+                    class="query-input"
+                    placeholder="例如：查询销售额最高的10个产品是什么？&#10;或者：上个月的销售总额是多少？&#10;您可以用自然语言描述您的查询需求..."
+            ></textarea>
+
+            <div class="button-group">
+                <button id="submitBtn" class="btn btn-primary">
+                    <span>🚀 提交查询</span>
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <span>🗑️ 清空</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>💡 示例问题：</h3>
+            <div class="example-list">
+                <div class="example-item" onclick="setExample('查询销售额最高的10个产品')">查询销售额最高的10个产品</div>
+                <div class="example-item" onclick="setExample('上个月的销售总额是多少')">上个月的销售总额是多少</div>
+                <div class="example-item" onclick="setExample('列出所有客户的信息')">列出所有客户的信息</div>
+                <div class="example-item" onclick="setExample('哪个产品的库存最少')">哪个产品的库存最少</div>
+                <div class="example-item" onclick="setExample('按月份统计销售额')">按月份统计销售额</div>
+                <div class="example-item" onclick="setExample('查询最近一周的销售记录')">查询最近一周的销售记录</div>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2>📋 查询结果</h2>
+            <div class="result-container">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在查询数据库，请稍候...</p>
+                </div>
+                <div class="result-content" id="resultContent">
+                    <p style="color: #9ca3af; text-align: center; padding: 40px;">
+                        查询结果将在这里显示...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 自然语言数据库查询系统 | 基于n8n工作流引擎</p>
+    </div>
+</div>
+
+<script>
+    // 设置示例问题
+    function setExample(example) {
+        document.getElementById('queryInput').value = example;
+    }
+
+    // 清空输入框
+    document.getElementById('clearBtn').addEventListener('click', function() {
+        document.getElementById('queryInput').value = '';
+        document.getElementById('resultContent').innerHTML =
+            '<p style="color: #9ca3af; text-align: center; padding: 40px;">查询结果将在这里显示...</p>';
+    });
+
+    // 提交查询
+    document.getElementById('submitBtn').addEventListener('click', async function() {
+        const query = document.getElementById('queryInput').value.trim();
+
+        if (!query) {
+            alert('请输入查询问题！');
+            return;
+        }
+
+        // 显示加载动画
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('resultContent').innerHTML = '';
+
+        try {
+            // 调用Spring Boot后端API
+            const response = await fetch('/api/n8n/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('HTTP错误! 状态: ' + response.status);
+            }
+
+            const data = await response.json();
+
+            // 显示结果
+            let resultHtml = '';
+            if (data.success) {
+                // 避免FreeMarker解析问题，使用字符串拼接而不是模板字符串
+                resultHtml = '<div style="background: #d1fae5; padding: 20px; border-radius: 10px; margin-bottom: 20px;">' +
+                    '<h3 style="color: #065f46; margin-bottom: 10px;">✅ 查询成功</h3>' +
+                    '<p style="color: #047857;">' + (data.message || '查询完成') + '</p>' +
+                    '</div>';
+
+                if (data.result) {
+                    if (typeof data.result === 'string') {
+                        resultHtml += '<div style="white-space: pre-wrap; font-family: monospace; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">' + data.result + '</div>';
+                    } else if (Array.isArray(data.result)) {
+                        resultHtml += '<div style="overflow-x: auto;">' +
+                            '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">' +
+                            '<thead>' +
+                            '<tr style="background: #4f46e5; color: white;">';
+
+                        // 表头
+                        if (data.result.length > 0) {
+                            const headers = Object.keys(data.result[0]);
+                            headers.forEach(function(header) {
+                                resultHtml += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">' + header + '</th>';
+                            });
+                        }
+
+                        resultHtml += '</tr></thead><tbody>';
+
+                        // 数据行
+                        data.result.forEach(function(row, index) {
+                            resultHtml += '<tr style="background: ' + (index % 2 === 0 ? '#f9fafb' : 'white') + '">';
+                            Object.values(row).forEach(function(value) {
+                                resultHtml += '<td style="padding: 10px; border: 1px solid #e5e7eb;">' + value + '</td>';
+                            });
+                            resultHtml += '</tr>';
+                        });
+
+                        resultHtml += '</tbody></table></div>';
+                    } else {
+                        resultHtml += '<div style="white-space: pre-wrap; font-family: monospace;">' + JSON.stringify(data.result, null, 2) + '</div>';
+                    }
+                }
+            } else {
+                resultHtml = '<div style="background: #fee2e2; padding: 20px; border-radius: 10px;">' +
+                    '<h3 style="color: #991b1b; margin-bottom: 10px;">❌ 查询失败</h3>' +
+                    '<p style="color: #dc2626;">' + (data.message || '未知错误') + '</p>' +
+                    '</div>';
+            }
+
+            document.getElementById('resultContent').innerHTML = resultHtml;
+
+        } catch (error) {
+            document.getElementById('resultContent').innerHTML =
+                '<div style="background: #fee2e2; padding: 20px; border-radius: 10px;">' +
+                '<h3 style="color: #991b1b; margin-bottom: 10px;">❌ 请求失败</h3>' +
+                '<p style="color: #dc2626;">错误信息：' + error.message + '</p>' +
+                '<p style="color: #6b7280; margin-top: 10px; font-size: 0.9rem;">' +
+                '请确保：<br>' +
+                '1. n8n服务正在运行（默认端口5678）<br>' +
+                '2. Spring Boot后端服务正在运行<br>' +
+                '3. 工作流已激活并配置正确' +
+                '</p>' +
+                '</div>';
+        } finally {
+            // 隐藏加载动画
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+
+    // 按Enter键提交（Ctrl+Enter）
+    document.getElementById('queryInput').addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            document.getElementById('submitBtn').click();
+        }
+    });
+</script>
+</body>
+</html>
