@@ -1,0 +1,781 @@
+{
+  "name": "库房智能助手",
+  "nodes": [
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "2331c6f5-9b17-40be-adfd-9a87495206f2",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1008,
+        784
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "232c4e0a-56d9-45bb-b9e2-d655ae424b89",
+              "name": "",
+              "value": "{{ $('query table column').item.json.table_name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "865d29d7-c998-4f8a-b63c-acde00e258b0",
+      "name": "Add table name to output",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        640,
+        224
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "./assemblylinetest.json",
+        "options": {}
+      },
+      "id": "46896315-6486-4a25-985c-70bc8bcb6999",
+      "name": "Save file locally",
+      "type": "n8n-nodes-base.readWriteFile",
+      "position": [
+        1088,
+        224
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "id": "77bb883c-29ee-4f18-9a1e-7b025087aa4c",
+      "name": "Extract data from file",
+      "type": "n8n-nodes-base.extractFromFile",
+      "position": [
+        416,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "30997f80-ada4-4228-b6bd-ad7e1422ec43",
+      "name": "When clicking \"Test workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -32,
+        224
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "42abd24e-419a-47d6-bc8b-7146dd0b8314",
+              "name": "sessionId",
+              "type": "string",
+              "value": "={{ $('Chat Trigger').first().json.sessionId }}"
+            },
+            {
+              "id": "39244192-a1a6-42fe-bc75-a6fba1f264df",
+              "name": "action",
+              "type": "string",
+              "value": "={{ $('Chat Trigger').first().json.action }}"
+            },
+            {
+              "id": "f78c57d9-df13-43c7-89a7-5387e528107e",
+              "name": "chatinput",
+              "type": "string",
+              "value": "={{ $('Chat Trigger').first().json.chatInput }}"
+            },
+            {
+              "id": "e42b39eb-dfbd-48d9-94ed-d658bdd41454",
+              "name": "schema",
+              "type": "string",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6f7af851-a563-4acd-8aab-adef775901d2",
+      "name": "Combine schema data and chat input",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        640,
+        560
+      ],
+      "executeOnce": true,
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "fileSelector": "./assemblylinetest.json",
+        "options": {}
+      },
+      "id": "5f441b2d-593a-4434-82b1-83486650f6ec",
+      "name": "Load the schema from the local file",
+      "type": "n8n-nodes-base.readWriteFile",
+      "position": [
+        192,
+        560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "options": {}
+      },
+      "id": "2c8547f3-db1c-4a95-aa0f-f8a1fa542330",
+      "name": "Convert data to Json",
+      "type": "n8n-nodes-base.convertToFile",
+      "position": [
+        864,
+        224
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  column_name, \n  data_type, \n  is_nullable, \n  column_default\nFROM information_schema.columns\nWHERE table_name  = '{{ $json.table_name }}'\n  AND table_schema = 'assemblylinetest'\nORDER BY ordinal_position;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        416,
+        224
+      ],
+      "id": "b65ae2c8-dbac-42fc-8d10-90349aaab8aa",
+      "name": "query table column",
+      "credentials": {
+        "mySql": {
+          "id": "5Z4JJVd4vFunfa9J",
+          "name": "测试服务器"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n\ttable_name\nFROM\n\tinformation_schema. TABLES\nWHERE\n\tTABLE_schema = 'assemblylinetest'\nAND table_name IN (\n\t'final_storeroom_conf',\n\t'final_storeroom_store',\n\t'product_material',\n\t'stock_expired_time',\n\t'stock_log',\n\t'store',\n\t'storeroom'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        224
+      ],
+      "id": "5a965f17-d9eb-4c15-b613-48a8c30254c1",
+      "name": "query tables name",
+      "credentials": {
+        "mySql": {
+          "id": "5Z4JJVd4vFunfa9J",
+          "name": "测试服务器"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        816,
+        784
+      ],
+      "id": "9674a7a4-a217-4349-adc7-686f56bb0da8",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dS7qOWJaytHbt6MA",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the database schema: {{ $json.schema }}\n这是用户的提问\n{{ $json.chatinput }}\n\n\n数据库别名命名规范：\n  - 使用表名的缩写或首字母作为别名\n  - 避免使用SQL保留字（如SET, KEY, INDEX, ORDER, GROUP等）\n  - 推荐使用：st, sl, pm, sr, se_time等\n  - 表名缩写规则：\n    * product_material → pm\n    * store → s\n    * storeroom → sr  \n    * stock_log → sl\n    * stock_expired_time → se_time 或 setime",
+        "options": {
+          "systemMessage": "\n一、角色定位\n角色：MySQL DBA 专家\n简介：一位技艺高超、经验丰富的 MySQL 数据库管理员，专门根据用户需求和提供的数据结构，精心制作精确高效的 SQL 查询。\n背景：在各种业务拥有丰富的数据设计、优化和 MySQL 数据库查询开发经验。\n擅长：分析需求、主题模型、询问筛选、直接理解解决方索，无需不必要的解释。\n目标受众：需要根据数据结构和所需信息生成特定 SQL 查询的用户。\n\n二、核心能力\nSQL 查询生成\n查询合成：构建语法正确、语义准确的 SQL 查询。\n数据结构解读：理解并利用提供的数据库结构进行查询生成。\n查询优化：编写高效查询以获得最佳性能。\n聚合与分组：使用聚合函数和分组来汇总数据。\n\nMySQL 数据库知识\nSchema 设计：理解并利用数据库 Schema 进行有效查询。\n数据类型：识别和处理 MySQL 中不同数据类型。\n索引：理解索引对查询性能的影响。\n常用 SQL 函数：利用内置 SQL 函数进行数据操作和分析。\n\n问题解决\n需求分析：理解用户的查询需求。\n逻辑推理：运用逻辑推理推导出正确的 SQL 查询。\n数据分析师：利用数据分析技术进行有效的查询设计。\n模式识别：识别常见查询模式并将其适配到特定场景。\n沟通\n简洁沟通：提供直接且可执行的 SQL 代码。\n需求澄清：在需要时提出澄清问题以生成相关查询。\n示例和解释：从用户的示例中学习以改善查询生成。\n\n三、工作规范与流程\n秉承 SQL 标准：确保 SQL 语句符合 MySQL 兼容的标准 SQL 语法。\n性能考虑：始终考虑查询性能并在适当时应用优化。\n\n迭代优化：如果第一个查询不理想，根据后续用户输入进行优化。\n约束\n不做假设：不要对数据 Schema 做出超出提供的假设。\n有限交互：尽量减少用户的请求，尽可能推断意图。\n不使用外部资源：不要使用外部资源或工具来生成查询。\n数据精简：确保返回不多不少足够的信息，不含不必要地暴露敏感信息。\n\n工作流程\n目标：根据给定数据结构，生成准确高效地回答用户问题的 MySQL 查询。\n步骤 1：分析用户的请求，确定所需结果和数据需求。\n步骤 2：检查提供的数据结构，识别相关的表、列和关系。\n步骤 3：构建一个 SQL 查询，根据需要选择、过滤、聚合和排序数据。\n步骤 4：确保生成的查询遵循 SQL 标准和 MySQL 语法，并针对性能进行优化。\n步骤 5：确保所有的查询和表基于现有表的结构来生成sql不要擅自编造表结构和数据\n\n四、可能会运用到的表字段结构和描述\n1.product_material 产品信息表，记录的是产品的一些基本信息字段描述等\n\n2.store 库存表，记录的是目前存储在库房的产品信息等\n1)position是产品存放的位置，下划线分割分别代表着存放在行列层\n\n3.storeroom 库房表，记录目前所拥有的库房信息\n\n4.stock_log 产品出入库日志表，记录的是所有产品入库和出库的信息\n1)status字段代表的是出入库方向\n2)product_material_id是产品的id，如果需要获取产品详细信息需要和product_material表联表查询\n3)name是产品的名称\n4)type字段是产品类型，产品类型（0.disabled1.副产品2.二维码产品3.二分体活牛4.箱5.四分体,6部位肉7.sn码8没有二维码的成品（物料等）9其他10活牛 11标重）\n其中如果type是2代表二维码产品如果是8代表没有二维码的产品\n5)common_id代表产品的二维码或者唯一码\n6）storeroom_id代表的是库房id需要和storeroom表联表查询获取库房名称\n7）primary_num是产品入库或者出库的重量\n8）primary_unit是产品入库出库的重量单位\n9）lost_num是产品出库的时候的损耗重量，一般用于type=3的产品\n\n5.stock_expired_time产品的过期时间或者预警时间\n1）common_id产品通用id，通常是二维码产品使用，和store表关联\n2）expired_time产品的过期时间\n3）notice_max_time 产品的过期预警时间\n\n四、典型查询场景示例\n\n用户：查询目前库房的存货情况\n回答：\nSELECT\ns.name,sr.storeroom_name,s.primary_num,s.primary_unit,s.type\nfrom store as s\nleft join storeroom as sr on sr.id = s.storeroom_id;\n\n用户：查询最近一个月产品入库出库的情况（按产品统计出入库总量）\n回答：SELECT \n    product_material_id,\n    name AS 产品名称,\n    type AS 产品类型,\n    detail_type AS 详细类型,\n    SUM(CASE WHEN status = 1 THEN primary_num ELSE 0 END) AS 总入库数量,\n    SUM(CASE WHEN status = 2 THEN primary_num ELSE 0 END) AS 总出库数量,\n    COUNT(CASE WHEN status = 1 THEN 1 END) AS 入库记录数,\n    COUNT(CASE WHEN status = 2 THEN 1 END) AS 出库记录数\nFROM stock_log\nWHERE create_time >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)\n    AND create_time < CURDATE() + INTERVAL 1 DAY\nGROUP BY product_material_id, name, type, detail_type\nORDER BY 总入库数量 DESC, 总出库数量 DESC;\n\n用户：查找单一的某个产品存放的位置\n思路: 联表product_material和store还有storeroom表然后获取到产品的position位置\n\n用户：查询哪些产品已经过期\n回答：\nselect\ns.name,st.expired_time,st.notice_max_time,sr.storeroom_name\nfrom store as s\nleft join stock_expired_time as st on s.common_id = st.common_id\nleft join storeroom as sr on sr.id = s.storeroom_id \nwhere \nst.expired_time > NOW();、\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        864,
+        560
+      ],
+      "id": "d6b21d98-2ac3-4978-863a-47922102e438",
+      "name": "natural language to sql"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ ($json.output.match(/SELECT[\\s\\S]*?;/i) || [])[0] || \"\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1216,
+        560
+      ],
+      "id": "3ea2a8fe-4aac-4741-8dff-ddf5c8ef4518",
+      "name": "sql query",
+      "alwaysOutputData": false,
+      "credentials": {
+        "mySql": {
+          "id": "5Z4JJVd4vFunfa9J",
+          "name": "测试服务器"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('sql query').all() }}",
+        "options": {
+          "systemMessage": "=一、角色定位\n作为 MySQL 内容总结攥写者，核心职能是将 MySQL 技术信息转化为通俗易懂的自然语言，具备数据库与自然语言处理双重专业知识。目标受众是从 DBA 到学生的广泛群体，以客观、简洁的风格传递关键概念，避免技术壁垒。\n\n二、核心技能\n数据可视化：从 MySQL 文档、代码示例和查询中提取相关数据。\n概念识别：识别所提供内容中的关键概念、特性和功能。\n技术分析：分析 MySQL 不同方面的技术细节和关系。\n准确性验证：确保摘要信息的准确性，以保持摘要的完整性。\n自然语言转换\n释义：将技术术语和概念句子改写成通俗易懂的语言。\n简化：简化复杂的概念和句子，以便更广泛地理解。\n综合：高效总结信息，同时保留关键细节。\n清晰：确保输出清晰、连贯且易于理解。\n\n三、撰写规则\n基本规则：\n准确性：摘要必须准确反映原始 MySQL 内容。\n客观性：在摘要中保持中立公正的立场。\n简洁性：保持摘要的核心重点，避免不必要的细节。\n清晰性：确保摘要内容易于理解，即使对于非专业人士也是如此。\n行为准则\n确认来源：隐含地确认信息来源为提供的 MySQL 内容。\n优先关键点：侧重于内容中最重要的方面。\n避免假设：不要假设读者具有先验知识。\n适应上下文：根据需要对 MySQL 内容的性质调整细节级别。\n约束：\n不进行原创研究：摘要仅基于提供的 MySQL 内容。\n不包含个人观点：避免注入个人观点或解释。\n长度限制：将摘要保持在合理长度，通常为几句话到一个段落。\n不执行代码：不尝试执行或运行 MySQL 代码。\n\n四、工作流程\n目标：用自然语言总结提供的 MySQL 内容。只分析一次不要重复多次的分析\n步骤 1：分析 MySQL 内容，识别其主要主题、概念和技术细节。\n步骤 2：从内容中提取相关信息，侧重于最重要的方面。\n步骤 3：将提取的信息转化为自然语言，语言要简洁、易于大众理解。\n步骤 4：如果用户明确要求生成图表，则调用工具生成可视化图表，否则不需要，如果用户明确要求，需要生成图表。请将数据转换为符合 QuickChart 或 Chart.js 的 JSON 格式。\n    请确保生成的 JSON 合法，并且能够直接用在 Chart.js 中去生成图表。\n    不要包含任何多余的内容，以便可直接用于 QuickChart 的 URL 请求。\n确保结果一个简洁、清晰、准确的 MySQL 内容摘要。\n\n四、执行规范\n作为Mysql摘要器，必须遵守上诉规则并根据工作流程执行任务\n\n客户的提问如下\n{{ $('Chat Trigger').item.json.chatInput }}\n根据客户的问题和需求,结合数据库的数据并对原始数据进行总结和分析给出答案、\n最后的结果请转化成markdown格式\nmarkdown的格式要求如下\n标题\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n\n引用\n> A man who stands for nothing will fall for anything.\n\n文字加粗、斜体\n**bold**\n*italic*\n\n链接\n[this is a link](http://name.com)\n\n图片（建议不要超过20张）\n![](http://name.com/pic.jpg)\n\n无序列表\n- item1\n- item2\n\n有序列表\n1. item1\n2. item2"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1440,
+        560
+      ],
+      "id": "3602447b-8d72-4204-a9fb-7a269c5152e0",
+      "name": "sql to natural language",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        784
+      ],
+      "id": "25cf0824-1803-48f2-9de9-3561052f2476",
+      "name": "自然语言chat",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dS7qOWJaytHbt6MA",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 只需运行此部分一次 \n\n* 从托管于本地 PostgreSQL 的数据库中加载所有表的列表\n* 提取每个表的数据库结构并添加表名\n* 将结构转换为二进制 JSON 格式\n* 将结构保存到本地的 `./sales_postgresql.json` 文件中\n\n***现在你可以使用聊天来“对”你的数据说话啦！*** 🎉\n",
+        "height": 466,
+        "width": 1385,
+        "color": 3
+      },
+      "id": "1da4aa08-dead-433d-b2d2-4e7729349bec",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        -80
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "你好，我是智能仓库客服，有什么可能帮助您的？",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        560
+      ],
+      "id": "27198acd-a6e0-4743-8267-1abc05b3bc75",
+      "name": "Chat Trigger",
+      "webhookId": "22043b71-4c36-4391-9d8e-32787c2a7e0a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取前一步AI Agent节点的输出数据\nconst aiOutput = $input.first().json;\n\n// 提取并清理markdown内容\nlet markdownContent = aiOutput.output;\nif (markdownContent.includes('```markdown')) {\n  markdownContent = markdownContent.replace(/```markdown\\s*/, '').replace(/\\s*```$/, '');\n}\n\n// 构建企业微信「群聊机器人」所需的JSON格式\nconst botMessage = {\n  \"msgtype\": \"markdown\", // 消息类型\n  \"markdown\": {\n    \"content\": markdownContent // 清理后的markdown内容\n  }\n};\n\n// 输出给HTTP Request节点\nreturn botMessage;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        560
+      ],
+      "id": "7f2dccfa-7344-4a27-8cca-a3fd9df71cbc",
+      "name": "covert msg to markdown"
+    },
+    {
+      "parameters": {
+        "content": "## 生成可视化图表\n\n- 柱状图、饼图、趋势图等",
+        "height": 620,
+        "width": 1288,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        1152
+      ],
+      "typeVersion": 1,
+      "id": "6a53259b-c96a-469b-ac72-ab7267266108",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        1344
+      ],
+      "id": "cef9182a-3908-48ce-9fc3-d83850d0e6f6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=input data: {{ $json.query }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "### 角色设定\n\n你是一位 Chart.js 可视化专家。你的主要任务是根据用户的请求，生成**有效、结构清晰、标签明确**的 Chart.js 配置对象。这些配置应当可以直接用于 Chart.js 的构造函数 `new Chart()` 中。\n\n---\n\n### 输入要求\n\n你将接收到用户关于图表的描述，请根据以下要素解析和响应：\n\n#### 1. 图表类型\n\n用户可能会指定图表类型，如：`bar`（柱状图）、`line`（折线图）、`pie`（饼图）、`scatter`（散点图）、`radar`、`bubble` 等。\n\n#### 2. 数据\n\n用户提供的数据可能为 CSV、JSON、列表或自然语言形式。\n\n* 对格式不清晰的数据，要主动提问澄清。\n* 如有需要，可提取和转换数据结构。\n\n#### 3. 标签信息\n\n用户应提供用于坐标轴、数据点等元素的标签，特别是：\n\n* **轴标题**（如：\"月份\", \"销售额（USD）\"）\n* **单位**（如：\"(kg)\", \"(USD)\"）\n* **数据类型**（分类、数值型、时间序列）\n  如信息缺失，请主动向用户确认。\n\n#### 4. 样式自定义（Styling）\n\n支持颜色、字体、网格线、标题、图例、工具提示、坐标轴刻度等样式调整。\n\n* 若用户未提供具体样式，使用 Chart.js 默认值。\n\n#### 5. Chart.js 特定功能\n\n根据用户请求，支持使用高级功能，如：对数坐标、动画、插件等。\n\n#### 6. 自然语言输入解析\n\n支持将不结构化的描述，准确转换为有效的 Chart.js 配置。\n\n---\n\n### 输出要求\n\n输出一个**有效、格式规范、可读性强**的 Chart.js JSON 配置对象，必须包括：\n\n* 数据部分（`data`）\n* 配置项（`options`）\n* 清晰的 x 轴和 y 轴标签（`options.scales` 中）\n* 必要时添加单位、标题、数据格式（如货币、日期等）\n\n---\n\n### 示例输入（优化版）\n\n> 创建一个柱状图，展示 2024 年第一季度每月销售额：1 月为 10,000 美元，2 月为 12,000 美元，3 月为 15,000 美元。柱子颜色为蓝色。图表标题为 \"Q1 2024 销售额\"。x 轴为 \"月份\"，y 轴为 \"销售额（USD）\"。\n\n### 示例输出\n\n请生成符合最新 Chart.js 版本标准的 JSON 配置，输出类似：\n\n```json\n{\n  \"type\": \"bar\",\n  \"data\": {\n    \"labels\": [\"January\", \"February\", \"March\"],\n    \"datasets\": [{\n      \"label\": \"销售额\",\n      \"data\": [10000, 12000, 15000],\n      \"backgroundColor\": \"blue\"\n    }]\n  },\n  \"options\": {\n    \"responsive\": true,\n    \"plugins\": {\n      \"title\": {\n        \"display\": true,\n        \"text\": \"Q1 2024 销售额\"\n      }\n    },\n    \"scales\": {\n      \"x\": {\n        \"title\": {\n          \"display\": true,\n          \"text\": \"月份\"\n        }\n      },\n      \"y\": {\n        \"title\": {\n          \"display\": true,\n          \"text\": \"销售额（USD）\"\n        }\n      }\n    }\n  }\n}\n```\n\n---\n\n### 重要注意事项\n\n* **数据验证**：如数据不完整或存在歧义，务必提示用户并请求补充信息。\n* **错误处理**：遇到无法生成图表的情况，应明确告知用户原因。\n* **Chart.js 版本**：默认使用最新版 Chart.js，除非用户另行指定。\n* **最佳实践**：遵循 Chart.js 官方推荐的配置方式，确保图表清晰、易读、专业。\n* **重点强调**：所有输出必须具备清晰的坐标轴标题和单位，体现图表的专业性和可读性。\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        144,
+        1360
+      ],
+      "id": "e26e204a-c58d-47f3-a27b-02d60bc72080",
+      "name": "AI Agent Chart Generator"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"name\": \"chart_configuration\",\n  \"description\": \"Configuration schema for Chart.js charts\",\n  \"strict\": true,\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"type\": {\n        \"type\": \"string\",\n        \"enum\": [\"bar\", \"line\", \"radar\", \"pie\", \"doughnut\", \"polarArea\", \"bubble\", \"scatter\", \"area\"]\n      },\n      \"data\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"labels\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"datasets\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"label\": {\n                  \"type\": [\"string\", \"null\"]\n                },\n                \"data\": {\n                  \"type\": \"array\",\n                  \"items\": {\n                    \"type\": \"number\"\n                  }\n                },\n                \"backgroundColor\": {\n                  \"type\": [\"array\", \"null\"],\n                  \"items\": {\n                    \"type\": \"string\"\n                  }\n                },\n                \"borderColor\": {\n                  \"type\": [\"array\", \"null\"],\n                  \"items\": {\n                    \"type\": \"string\"\n                  }\n                },\n                \"borderWidth\": {\n                  \"type\": [\"number\", \"null\"]\n                }\n              },\n              \"required\": [\"data\", \"label\", \"backgroundColor\", \"borderColor\", \"borderWidth\"],\n              \"additionalProperties\": false\n            }\n          }\n        },\n        \"required\": [\"labels\", \"datasets\"],\n        \"additionalProperties\": false\n      },\n      \"options\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"scales\": {\n            \"type\": [\"object\", \"null\"],\n            \"properties\": {\n              \"yAxes\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": [\"object\", \"null\"],\n                  \"properties\": {\n                    \"ticks\": {\n                      \"type\": [\"object\", \"null\"],\n                      \"properties\": {\n                        \"max\": {\n                          \"type\": [\"number\", \"null\"]\n                        },\n                        \"min\": {\n                          \"type\": [\"number\", \"null\"]\n                        },\n                        \"stepSize\": {\n                          \"type\": [\"number\", \"null\"]\n                        },\n                        \"beginAtZero\": {\n                          \"type\": [\"boolean\", \"null\"]\n                        }\n                      },\n                      \"required\": [\"max\", \"min\", \"stepSize\", \"beginAtZero\"],\n                      \"additionalProperties\": false\n                    },\n                    \"scaleLabel\": {\n                      \"type\": [\"object\", \"null\"],\n                      \"properties\": {\n                        \"display\": {\n                          \"type\": [\"boolean\", \"null\"]\n                        },\n                        \"labelString\": {\n                          \"type\": [\"string\", \"null\"]\n                        }\n                      },\n                      \"additionalProperties\": false\n                    }\n                  },\n                  \"required\": [\"ticks\"],\n                  \"additionalProperties\": false\n                }\n              },\n              \"xAxes\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": [\"object\", \"null\"],\n                  \"properties\": {\n                    \"stacked\": {\n                      \"type\": [\"boolean\", \"null\"]\n                    },\n                    \"scaleLabel\": {\n                      \"type\": [\"object\", \"null\"],\n                      \"properties\": {\n                        \"display\": {\n                          \"type\": [\"boolean\", \"null\"]\n                        },\n                        \"labelString\": {\n                          \"type\": [\"string\", \"null\"]\n                        }\n                      },\n                      \"additionalProperties\": false\n                    }\n                  },\n                  \"required\": [\"stacked\"],\n                  \"additionalProperties\": false\n                }\n              }\n            },\n            \"required\": [\"yAxes\", \"xAxes\"],\n            \"additionalProperties\": false\n          },\n          \"plugins\": {\n            \"type\": [\"object\", \"null\"],\n            \"properties\": {\n              \"title\": {\n                \"type\": [\"object\", \"null\"],\n                \"properties\": {\n                  \"display\": {\n                    \"type\": [\"boolean\", \"null\"]\n                  },\n                  \"text\": {\n                    \"type\": [\"string\", \"null\"]\n                  }\n                },\n                \"required\": [\"display\", \"text\"],\n                \"additionalProperties\": false\n              },\n              \"legend\": {\n                \"type\": [\"object\", \"null\"],\n                \"properties\": {\n                  \"display\": {\n                    \"type\": [\"boolean\", \"null\"]\n                  },\n                  \"position\": {\n                    \"type\": [\"string\", \"null\"],\n                    \"enum\": [\"top\", \"left\", \"bottom\", \"right\", null]\n                  }\n                },\n                \"required\": [\"display\", \"position\"],\n                \"additionalProperties\": false\n              }\n            },\n            \"required\": [\"title\", \"legend\"],\n            \"additionalProperties\": false\n          },\n          \"responsive\": {\n            \"type\": [\"boolean\", \"null\"]\n          },\n          \"maintainAspectRatio\": {\n            \"type\": [\"boolean\", \"null\"]\n          },\n          \"animation\": {\n            \"type\": [\"object\", \"null\"],\n            \"properties\": {\n              \"duration\": {\n                \"type\": [\"number\", \"null\"]\n              },\n              \"easing\": {\n                \"type\": [\"string\", \"null\"]\n              }\n            },\n            \"additionalProperties\": false\n          }\n        },\n        \"required\": [\"scales\", \"plugins\"],\n        \"additionalProperties\": false\n      }\n    },\n    \"required\": [\"type\", \"data\", \"options\"],\n    \"additionalProperties\": false\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        1584
+      ],
+      "id": "3111b6d1-6b2c-4d80-86e6-997f54aae5bd",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        96,
+        1584
+      ],
+      "id": "66463d5c-6cd0-42c3-9dbf-87b51c2a4473",
+      "name": "DeepSeek change chartjs",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "dS7qOWJaytHbt6MA",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"chartUrl\": \"https://quickchart.io/chart?width=800&height=400&c=\" + encodeURIComponent(JSON.stringify($json.output))\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        1360
+      ],
+      "id": "4221b7f0-ea5f-4711-a2bc-f55648af62d2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "description": "=如需生成图表，请调用相应工具。务必正确转义所有字符串，尤其是多行内容。输出图表时，使用 Markdown 格式嵌入图像链接，以实现图表的内联展示。\n\n格式示例：![图表](图表URL)",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "A7jtymr5C7eAI6Ot"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        992
+      ],
+      "id": "73769ac6-c761-4621-b3a0-e5c01f0a9608",
+      "name": "generate chartjs"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import time\nimport hmac\nimport hashlib\nimport base64\nimport urllib.parse\n\n\nfor item in _input.all():\n  timestamp = str(round(time.time() * 1000))\n  secret = 'SECa1a0d1aa4bbbefba2a2b7ee8f054c83a2bf498ff6e62f51e33cc4d427c1bba72'\n  secret_enc = secret.encode('utf-8')\n  string_to_sign = '{}\\n{}'.format(timestamp, secret)\n  string_to_sign_enc = string_to_sign.encode('utf-8')\n  hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()\n  sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))\n  item.json.timestamp = timestamp\n  item.json.sign = sign \nreturn _input.all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        736
+      ],
+      "id": "0cb94a1a-7661-4bb8-93af-5cefb503ef21",
+      "name": "sign dingding data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "a5450767-ad81-4dd6-b0a2-fa3074ea4811"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"msgtype\": \"markdown\",\n    \"markdown\": {\n        \"content\": {{ $json.markdown.content.toJsonString() }}\n    }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2160,
+        432
+      ],
+      "id": "da491918-f952-408b-aeaa-428f8fcfb595",
+      "name": "Send msg to wechat"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://oapi.dingtalk.com/robot/send?access_token=5c2fd8b5a1fe9afbeee13c3564cfda40ac9698b5a24acafeeca1d85271e3e35f",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "=sign",
+              "value": "={{ $json.sign }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n     \"msgtype\": \"markdown\",\n     \"markdown\": {\n         \"title\":\"智能AI推送\",\n         \"text\": {{ $json.markdown.content.toJsonString() }}\n    },\n      \"at\": {\n          \"atMobiles\": [],\n          \"atUserIds\": [],\n          \"isAtAll\": true\n      }\n }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2528,
+        736
+      ],
+      "id": "61bbdc1f-d9c2-427d-9872-08e8c46a9f59",
+      "name": "Send msg to dingding"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add table name to output": {
+      "main": [
+        [
+          {
+            "node": "Convert data to Json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract data from file": {
+      "main": [
+        [
+          {
+            "node": "Combine schema data and chat input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \"Test workflow\"": {
+      "main": [
+        [
+          {
+            "node": "query tables name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine schema data and chat input": {
+      "main": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load the schema from the local file": {
+      "main": [
+        [
+          {
+            "node": "Extract data from file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert data to Json": {
+      "main": [
+        [
+          {
+            "node": "Save file locally",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query table column": {
+      "main": [
+        [
+          {
+            "node": "Add table name to output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query tables name": {
+      "main": [
+        [
+          {
+            "node": "query table column",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "natural language to sql": {
+      "main": [
+        [
+          {
+            "node": "sql query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sql query": {
+      "main": [
+        [
+          {
+            "node": "sql to natural language",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "自然语言chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "sql to natural language",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load the schema from the local file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sql to natural language": {
+      "main": [
+        [
+          {
+            "node": "covert msg to markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "covert msg to markdown": {
+      "main": [
+        [
+          {
+            "node": "sign dingding data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Chart Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent Chart Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek change chartjs": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Chart Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Chart Generator": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate chartjs": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Send msg to wechat": {
+      "main": [
+        []
+      ]
+    },
+    "sign dingding data": {
+      "main": [
+        [
+          {
+            "node": "Send msg to dingding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "513b6c42-8945-4fa3-bad7-96d2f67dd9cb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3db276c850feb25139d631a19ebeca34feadf3652e6dbc42547227dfca91782e"
+  },
+  "id": "A7jtymr5C7eAI6Ot",
+  "tags": []
+}

@@ -1,0 +1,627 @@
+{
+  "name": "库房智能助手ding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ding_talk",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2144,
+        -688
+      ],
+      "id": "13e30fd0-b408-4061-9ec3-dced1dad448c",
+      "name": "Webhook",
+      "webhookId": "6b068a9d-0228-4b74-8b59-09a05e05cb99"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 从Webhook接收的钉钉消息中提取content（用户输入的指令）\n// const dingtalkMsg = $input.body; // Webhook接收的消息体\nconst userInput = $input.first().json.body.content // 钉钉消息中的内容（如#查询订单 123）\n// 生成会话ID：用用户ID（确保唯一，区分不同用户的上下文）\nconst sessionId = $input.first().json.body.userId; \n\n// 输出userInput，传递给后续节点（替代原来Chat Trigger的输入）\nreturn {\n  userInput: userInput,\n  // 可选：传递其他字段（如userName/groupName）\n  userName: $input.first().json.body.userName,\n  groupName: $input.first().json.body.groupName,\n  sessionId: sessionId\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        -688
+      ],
+      "id": "69f61314-8fe5-48f5-bbb7-5a71e8179e9f",
+      "name": "get msg from dingtalk"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session }}",
+        "contextWindowLength": 10
+      },
+      "id": "8c284826-1322-406c-be40-8cf113e2ff1f",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -864,
+        -464
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "232c4e0a-56d9-45bb-b9e2-d655ae424b89",
+              "name": "",
+              "value": "{{ $('query table column').item.json.table_name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d7898da0-c29a-4a8d-96ec-b5ef60d3539a",
+      "name": "Add table name to output",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1232,
+        -1024
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "./assemblylinetest.json",
+        "options": {}
+      },
+      "id": "c11cd8b0-2910-412b-8bfa-988ca6a9130f",
+      "name": "Save file locally",
+      "type": "n8n-nodes-base.readWriteFile",
+      "position": [
+        -784,
+        -1024
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "id": "0d1dd916-8ab1-45bf-b057-9a23df84dcce",
+      "name": "Extract data from file",
+      "type": "n8n-nodes-base.extractFromFile",
+      "position": [
+        -1456,
+        -688
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "346de4c4-751c-4954-b71d-8ae01878a939",
+      "name": "When clicking \"Test workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1904,
+        -1024
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f78c57d9-df13-43c7-89a7-5387e528107e",
+              "name": "chatinput",
+              "type": "string",
+              "value": "={{ $('get msg from dingtalk').item.json.userInput }}"
+            },
+            {
+              "id": "e42b39eb-dfbd-48d9-94ed-d658bdd41454",
+              "name": "schema",
+              "type": "string",
+              "value": "={{ $json.data }}"
+            },
+            {
+              "id": "a29c18d1-742d-440c-83fd-ffa025b6e1f5",
+              "name": "session",
+              "value": "={{ $('get msg from dingtalk').item.json.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6fc5909-8e96-4049-9ad1-06bffbe3eabf",
+      "name": "Combine schema data and chat input",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1232,
+        -688
+      ],
+      "executeOnce": true,
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "fileSelector": "./assemblylinetest.json",
+        "options": {}
+      },
+      "id": "64592a81-8bac-4aae-aa94-0c2e4fc714b9",
+      "name": "Load the schema from the local file",
+      "type": "n8n-nodes-base.readWriteFile",
+      "position": [
+        -1680,
+        -688
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "options": {}
+      },
+      "id": "5013beef-78f0-4867-88e0-67dff529f512",
+      "name": "Convert data to Json",
+      "type": "n8n-nodes-base.convertToFile",
+      "position": [
+        -1008,
+        -1024
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  column_name, \n  data_type, \n  is_nullable, \n  column_default\nFROM information_schema.columns\nWHERE table_name  = '{{ $json.table_name }}'\n  AND table_schema = 'assemblylinetest'\nORDER BY ordinal_position;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -1456,
+        -1024
+      ],
+      "id": "2ceedbd9-5226-4a7d-b1af-a8103589877e",
+      "name": "query table column",
+      "credentials": {
+        "mySql": {
+          "id": "jeuyRGGNFRmxYNor",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n\ttable_name\nFROM\n\tinformation_schema. TABLES\nWHERE\n\tTABLE_schema = 'assemblylinetest'\nAND table_name IN (\n\t'final_storeroom_conf',\n\t'final_storeroom_store',\n\t'product_material',\n\t'stock_expired_time',\n\t'stock_log',\n\t'store',\n\t'storeroom'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -1680,
+        -1024
+      ],
+      "id": "6f829314-7d16-4089-b6db-d30b5a08f4d2",
+      "name": "query tables name",
+      "credentials": {
+        "mySql": {
+          "id": "jeuyRGGNFRmxYNor",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        -464
+      ],
+      "id": "3c2b3fae-6137-475d-b157-3b232546ac2d",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "bbxetBHK56SfIClw",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the database schema: {{ $json.schema }}\n这是用户的提问\n{{ $json.chatinput }}\n\n数据库别名命名规范：\n  - 使用表名的缩写或首字母作为别名\n  - 避免使用SQL保留字（如SET, KEY, INDEX, ORDER, GROUP等）\n  - 推荐使用：st, sl, pm, sr, se_time等\n  - 表名缩写规则：\n    * product_material → pm\n    * store → s\n    * storeroom → sr  \n    * stock_log → sl\n    * stock_expired_time → se_time 或 setime\n\n请根据需求生成MySQL SQL语句，要求：\n1. 字段别名尽量用中文,类似type等字段返回备注里的中文（禁止使用/、空格等特殊符号）；\n2. 只返回纯SQL语句，不要包含说明文字；\n3. SQL语句以;结尾。\n4. 禁止执行或者生成insert,update,delete等操作，只能生成select等sql语句，保护数据库数据\n",
+        "options": {
+          "systemMessage": "\n一、角色定位\n角色：MySQL DBA 专家\n简介：一位技艺高超、经验丰富的 MySQL 数据库管理员，专门根据用户需求和提供的数据结构，精心制作精确高效的 SQL 查询。\n背景：在各种业务拥有丰富的数据设计、优化和 MySQL 数据库查询开发经验。\n擅长：分析需求、主题模型、询问筛选、直接理解解决方索，无需不必要的解释。\n目标受众：需要根据数据结构和所需信息生成特定 SQL 查询的用户。\n\n二、核心能力\nSQL 查询生成\n查询合成：构建语法正确、语义准确的 SQL 查询。\n数据结构解读：理解并利用提供的数据库结构进行查询生成。\n查询优化：编写高效查询以获得最佳性能。\n聚合与分组：使用聚合函数和分组来汇总数据。\n\nMySQL 数据库知识\nSchema 设计：理解并利用数据库 Schema 进行有效查询。\n数据类型：识别和处理 MySQL 中不同数据类型。\n索引：理解索引对查询性能的影响。\n常用 SQL 函数：利用内置 SQL 函数进行数据操作和分析。\n\n问题解决\n需求分析：理解用户的查询需求。\n逻辑推理：运用逻辑推理推导出正确的 SQL 查询。\n数据分析师：利用数据分析技术进行有效的查询设计。\n模式识别：识别常见查询模式并将其适配到特定场景。\n沟通\n简洁沟通：提供直接且可执行的 SQL 代码。\n需求澄清：在需要时提出澄清问题以生成相关查询。\n示例和解释：从用户的示例中学习以改善查询生成。\n\n三、工作规范与流程\n秉承 SQL 标准：确保 SQL 语句符合 MySQL 兼容的标准 SQL 语法。\n性能考虑：始终考虑查询性能并在适当时应用优化。\n\n迭代优化：如果第一个查询不理想，根据后续用户输入进行优化。\n约束\n不做假设：不要对数据 Schema 做出超出提供的假设。\n有限交互：尽量减少用户的请求，尽可能推断意图。\n不使用外部资源：不要使用外部资源或工具来生成查询。\n数据精简：确保返回不多不少足够的信息，不含不必要地暴露敏感信息。\n\n工作流程\n目标：根据给定数据结构，生成准确高效地回答用户问题的 MySQL 查询。\n步骤 1：分析用户的请求，确定所需结果和数据需求。\n步骤 2：检查提供的数据结构，识别相关的表、列和关系。\n步骤 3：构建一个 SQL 查询，根据需要选择、过滤、聚合和排序数据。\n步骤 4：确保生成的查询遵循 SQL 标准和 MySQL 语法，并针对性能进行优化。\n步骤 5：确保所有的查询和表基于现有表的结构来生成sql不要擅自编造表结构和数据\n\n四、可能会运用到的表字段结构和描述\n1.product_material 产品信息表，记录的是产品的一些基本信息字段描述等\n\n2.store 库存表，记录的是目前存储在库房的产品信息等\n1)position是产品存放的位置，下划线分割分别代表着存放在行列层\n\n3.storeroom 库房表，记录目前所拥有的库房信息\n\n4.stock_log 产品出入库日志表，记录的是所有产品入库和出库的信息\n1)status字段代表的是出入库方向\n2)product_material_id是产品的id，如果需要获取产品详细信息需要和product_material表联表查询\n3)name是产品的名称\n4)type字段是产品类型，产品类型（0.disabled1.副产品2.二维码产品3.二分体活牛4.箱5.四分体,6部位肉7.sn码8没有二维码的成品（物料等）9其他10活牛 11标重）\n其中如果type是2代表二维码产品如果是8代表没有二维码的产品\n5)common_id代表产品的二维码或者唯一码\n6）storeroom_id代表的是库房id需要和storeroom表联表查询获取库房名称\n7）primary_num是产品入库或者出库的重量\n8）primary_unit是产品入库出库的重量单位\n9）lost_num是产品出库的时候的损耗重量，一般用于type=3的产品\n\n5.stock_expired_time产品的过期时间或者预警时间\n1）common_id产品通用id，通常是二维码产品使用，和store表关联\n2）expired_time产品的过期时间\n3）notice_max_time 产品的过期预警时间\n\n四、典型查询场景示例\n\n用户：查询目前库房的存货情况\n回答：\nSELECT\ns.name,sr.storeroom_name,s.primary_num,s.primary_unit,s.type\nfrom store as s\nleft join storeroom as sr on sr.id = s.storeroom_id;\n\n用户：查询最近一个月产品入库出库的情况（按产品统计出入库总量）\n回答：SELECT \n    product_material_id,\n    name AS 产品名称,\n    type AS 产品类型,\n    detail_type AS 详细类型,\n    SUM(CASE WHEN status = 1 THEN primary_num ELSE 0 END) AS 总入库数量,\n    SUM(CASE WHEN status = 2 THEN primary_num ELSE 0 END) AS 总出库数量,\n    COUNT(CASE WHEN status = 1 THEN 1 END) AS 入库记录数,\n    COUNT(CASE WHEN status = 2 THEN 1 END) AS 出库记录数\nFROM stock_log\nWHERE create_time >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)\n    AND create_time < CURDATE() + INTERVAL 1 DAY\nGROUP BY product_material_id, name, type, detail_type\nORDER BY 总入库数量 DESC, 总出库数量 DESC;\n\n用户：查找单一的某个产品存放的位置\n思路: 联表product_material和store还有storeroom表然后获取到产品的position位置\n\n用户：查询哪些产品已经过期\n回答：\nselect\ns.name,st.expired_time,st.notice_max_time,sr.storeroom_name\nfrom store as s\nleft join stock_expired_time as st on s.common_id = st.common_id\nleft join storeroom as sr on sr.id = s.storeroom_id \nwhere \nst.expired_time > NOW();、\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1008,
+        -688
+      ],
+      "id": "d449e1d2-3b27-4bd6-baa7-0be2580b6516",
+      "name": "natural language to sql"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ ($json.output.match(/SELECT[\\s\\S]*?;/i) || [])[0] || \"\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        -688
+      ],
+      "id": "05f97f4c-339f-418c-b3fb-b1144430478d",
+      "name": "sql query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "jeuyRGGNFRmxYNor",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('sql query').all() }}",
+        "options": {
+          "systemMessage": "=一、角色定位\n作为 MySQL 内容总结攥写者，核心职能是将 MySQL 技术信息转化为通俗易懂的自然语言，具备数据库与自然语言处理双重专业知识。目标受众是从 DBA 到学生的广泛群体，以客观、简洁的风格传递关键概念，避免技术壁垒。\n\n二、核心技能\n数据可视化：从 MySQL 文档、代码示例和查询中提取相关数据。\n概念识别：识别所提供内容中的关键概念、特性和功能。\n技术分析：分析 MySQL 不同方面的技术细节和关系。\n准确性验证：确保摘要信息的准确性，以保持摘要的完整性。\n自然语言转换\n释义：将技术术语和概念句子改写成通俗易懂的语言。\n简化：简化复杂的概念和句子，以便更广泛地理解。\n综合：高效总结信息，同时保留关键细节。\n清晰：确保输出清晰、连贯且易于理解。\n\n三、撰写规则\n基本规则：\n准确性：摘要必须准确反映原始 MySQL 内容。\n客观性：在摘要中保持中立公正的立场。\n简洁性：保持摘要的核心重点，避免不必要的细节。\n清晰性：确保摘要内容易于理解，即使对于非专业人士也是如此。\n行为准则\n确认来源：隐含地确认信息来源为提供的 MySQL 内容。\n优先关键点：侧重于内容中最重要的方面。\n避免假设：不要假设读者具有先验知识。\n适应上下文：根据需要对 MySQL 内容的性质调整细节级别。\n约束：\n不进行原创研究：摘要仅基于提供的 MySQL 内容。\n不包含个人观点：避免注入个人观点或解释。\n长度限制：将摘要保持在合理长度，通常为几句话到一个段落。\n不执行代码：不尝试执行或运行 MySQL 代码。\n\n四、工作流程\n目标：用自然语言总结提供的 MySQL 内容。只分析一次不要重复多次的分析\n步骤 1：分析 MySQL 内容，识别其主要主题、概念和技术细节。\n步骤 2：从内容中提取相关信息，侧重于最重要的方面。\n步骤 3：将提取的信息转化为自然语言，语言要简洁、易于大众理解。\n步骤 4：如果用户明确要求生成图表，则调用工具生成可视化图表，否则不需要，如果用户明确要求，需要生成图表。请将数据转换为符合 QuickChart 或 Chart.js 的 JSON 格式。\n    请确保生成的 JSON 合法，并且能够直接用在 Chart.js 中去生成图表。\n    不要包含任何多余的内容，以便可直接用于 QuickChart 的 URL 请求。\n确保结果一个简洁、清晰、准确的 MySQL 内容摘要。\n\n四、执行规范\n作为Mysql摘要器，必须遵守上诉规则并根据工作流程执行任务\n\n客户的提问如下\n{{ $('get msg from dingtalk').item.json.userInput }}\n根据客户的问题和需求,结合数据库的数据并对原始数据进行总结和分析给出答案\n\n\n如果{{ $node[\"sql query\"].json.data || [] }}返回的是空,则直接回复客户\"未找到相关数据,请咨询其他问题\"，不要返回其他数据给客户，但是结果还是要转化成markdown格式方便我后续处理\n\n最后的结果请转化成markdown格式\nmarkdown的格式要求如下\n标题\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n\n引用\n> A man who stands for nothing will fall for anything.\n\n文字加粗、斜体\n**bold**\n*italic*\n\n链接\n[this is a link](http://name.com)\n\n图片（建议不要超过20张）\n![](http://name.com/pic.jpg)\n\n无序列表\n- item1\n- item2\n\n有序列表\n1. item1\n2. item2\n\n禁止：直接返回数据库表结构,或者表字段给客户"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -352,
+        -688
+      ],
+      "id": "77420302-57f7-49db-ae33-ccc2fae4df4f",
+      "name": "sql to natural language",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -448
+      ],
+      "id": "96649b41-2a77-4ee3-8b4a-f983232e676c",
+      "name": "自然语言chat",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "bbxetBHK56SfIClw",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 只需运行此部分一次 \n\n* 从托管于本地 PostgreSQL 的数据库中加载所有表的列表\n* 提取每个表的数据库结构并添加表名\n* 将结构转换为二进制 JSON 格式\n* 将结构保存到本地的 `./sales_postgresql.json` 文件中\n\n***现在你可以使用聊天来“对”你的数据说话啦！*** 🎉\n",
+        "height": 466,
+        "width": 1385,
+        "color": 3
+      },
+      "id": "ad8924a3-10e8-4075-9414-5410e4c6c773",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1936,
+        -1328
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取前一步AI Agent节点的输出数据\nconst aiOutput = $input.first().json;\n\n// 提取并清理markdown内容\nlet markdownContent = aiOutput.output;\nif (markdownContent.includes('```markdown')) {\n  markdownContent = markdownContent.replace(/```markdown\\s*/, '').replace(/\\s*```$/, '');\n}\n\n// 构建企业微信「群聊机器人」所需的JSON格式\nconst botMessage = {\n  \"msgtype\": \"markdown\", // 消息类型\n  \"markdown\": {\n    \"content\": markdownContent // 清理后的markdown内容\n  }\n};\n\n// 输出给HTTP Request节点\nreturn botMessage;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -688
+      ],
+      "id": "69219154-948b-4914-82ad-2ab2260e493d",
+      "name": "covert msg to markdown"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import time\nimport hmac\nimport hashlib\nimport base64\nimport urllib.parse\n\n\nfor item in _input.all():\n  timestamp = str(round(time.time() * 1000))\n  secret = 'SECcf5a5f6c6a66e10532471b138ef24e8322f6cf16ae50a3669aa27c3cb4471c46'\n  secret_enc = secret.encode('utf-8')\n  string_to_sign = '{}\\n{}'.format(timestamp, secret)\n  string_to_sign_enc = string_to_sign.encode('utf-8')\n  hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()\n  sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))\n  item.json.timestamp = timestamp\n  item.json.sign = sign \nreturn _input.all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -688
+      ],
+      "id": "c9957c7c-35cf-4ca3-8de6-84961148de19",
+      "name": "sign dingding data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "a5450767-ad81-4dd6-b0a2-fa3074ea4811"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"msgtype\": \"markdown\",\n    \"markdown\": {\n        \"content\": {{ $json.markdown.content.toJsonString() }}\n    }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        304,
+        -864
+      ],
+      "id": "5d9bc45c-a8d3-467a-8f1b-7f328a6a39db",
+      "name": "Send msg to wechat"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://oapi.dingtalk.com/robot/send?access_token=31215f5d1c8320f58a8cc367bcda71f9c2610b7fbd2708b8b9307fdb7b845fda",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "=sign",
+              "value": "={{ $json.sign }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n     \"msgtype\": \"markdown\",\n     \"markdown\": {\n         \"title\":\"智能AI推送\",\n         \"text\": {{ $json.markdown.content.toJsonString() }}\n    },\n      \"at\": {\n          \"atMobiles\": [],\n          \"atUserIds\": [],\n          \"isAtAll\": true\n      }\n }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        -688
+      ],
+      "id": "fcfbc1ab-f9a5-4467-b5c6-43f9de1a0a29",
+      "name": "Send msg to dingding"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "get msg from dingtalk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add table name to output": {
+      "main": [
+        [
+          {
+            "node": "Convert data to Json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract data from file": {
+      "main": [
+        [
+          {
+            "node": "Combine schema data and chat input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \"Test workflow\"": {
+      "main": [
+        [
+          {
+            "node": "query tables name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine schema data and chat input": {
+      "main": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load the schema from the local file": {
+      "main": [
+        [
+          {
+            "node": "Extract data from file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert data to Json": {
+      "main": [
+        [
+          {
+            "node": "Save file locally",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query table column": {
+      "main": [
+        [
+          {
+            "node": "Add table name to output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query tables name": {
+      "main": [
+        [
+          {
+            "node": "query table column",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "natural language to sql",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "natural language to sql": {
+      "main": [
+        [
+          {
+            "node": "sql query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sql query": {
+      "main": [
+        [
+          {
+            "node": "sql to natural language",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "自然语言chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "sql to natural language",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sql to natural language": {
+      "main": [
+        [
+          {
+            "node": "covert msg to markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "covert msg to markdown": {
+      "main": [
+        [
+          {
+            "node": "sign dingding data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sign dingding data": {
+      "main": [
+        [
+          {
+            "node": "Send msg to dingding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get msg from dingtalk": {
+      "main": [
+        [
+          {
+            "node": "Load the schema from the local file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "30380785-8c88-44e6-8619-de030fb8dc31",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a2273711b4aea9d7d7574d8030e43adacae126bfdd44e135f1c866833d5f0aba"
+  },
+  "id": "3bTyKdaAEDXLIhBh",
+  "tags": []
+}
