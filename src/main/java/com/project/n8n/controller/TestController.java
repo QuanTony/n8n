@@ -5,20 +5,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Api(value = "test", description = "test")
 @Controller
-@RequestMapping("/test")
+@RequestMapping("/ai")
 public class TestController {
 
-    /**
-     * 跳转n8n页面
-     * @return
-     */
-    @GetMapping("/n8n")
+    // 访问 /test/n8n 时，返回 templates/n8n.html
+    @GetMapping("/aiReplay")
     public String n8n() {
-        return "n8n";
+        // 直接返回视图名（Freemarker会自动拼接 suffix: .html）
+        return "aiReplay";
     }
-
-
-
 }

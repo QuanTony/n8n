@@ -1,0 +1,220 @@
+{
+  "name": "鹤岗Ai自动回复数据",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "bitable",
+        "operation": "bitable:table:record:search",
+        "app_toke": "LXoAbyLh8am26MsQcw0cQ7Jcnm8",
+        "table_id": "tbl6bCPBZbzA1apd",
+        "page_size": 500,
+        "body": "{\n  \"page_size\": 500\n}"
+      },
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        0
+      ],
+      "id": "40e03c34-ffdc-4542-9e6d-fab427a21ae0",
+      "name": "Get data from all statistic",
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "X5zfe0rD4g1XN5AD",
+          "name": "Feishu account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "bitable",
+        "operation": "bitable:table:record:search",
+        "app_toke": "LXoAbyLh8am26MsQcw0cQ7Jcnm8",
+        "table_id": "tbl50VzWik62F4UX",
+        "page_size": 500,
+        "body": "{\n  \"page_size\": 500\n}"
+      },
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        0
+      ],
+      "id": "1fa82fee-18bd-44ad-a0e2-a02339e69cb6",
+      "name": "Get employee statistic",
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "X5zfe0rD4g1XN5AD",
+          "name": "Feishu account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. 获取两个飞书节点的原始数据\nconst allStatisticRaw = $node[\"Get data from all statistic\"].json;\nconst employeeStatisticRaw = $node[\"Get employee statistic\"].json;\n\n// 2. 工具函数：提取飞书字段的text值（适配[{text: \"值\"}]格式）\nconst getFeishuText = (field) => {\n  if (Array.isArray(field) && field[0]?.text) return field[0].text;\n  return \"\";\n};\n\n// 3. 核心修复：解析日期字段（强制东八区时区，解决UTC时间戳日期提前1天问题）\nconst parseFeishuDate = (dateField) => {\n  // 情况1：日期是飞书UTC时间戳（number类型，如1765987200000）\n  if (typeof dateField === \"number\") {\n    const utcDate = new Date(dateField);\n    \n    // 强制转换为东八区（UTC+8）日期，避免跨天偏移\n    // 步骤1：获取UTC时间的年月日\n    let year = utcDate.getUTCFullYear();\n    let month = utcDate.getUTCMonth(); // 0-11\n    let day = utcDate.getUTCDate();\n    \n    // 步骤2：东八区偏移计算（UTC+8小时，判断是否跨天）\n    const utcHour = utcDate.getUTCHours();\n    if (utcHour >= 16) { // UTC 16点 = 东八区 24点，需+1天\n      day += 1;\n      // 处理月份/年份进位（如12月31日+1天=次年1月1日）\n      const nextDay = new Date(Date.UTC(year, month, day));\n      year = nextDay.getUTCFullYear();\n      month = nextDay.getUTCMonth();\n      day = nextDay.getUTCDate();\n    }\n    \n    // 步骤3：格式化为 YYYY-MM-DD\n    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;\n  }\n  \n  // 情况2：日期是文本格式（如[{text: \"2025/12/23\"}]）\n  const dateText = getFeishuText(dateField);\n  if (dateText) {\n    // 兼容：2025/12/23、2025-12-23、2025年12月23日\n    return dateText.replace(/\\/|年|月|日/g, \"-\").replace(/--/g, \"-\").trim();\n  }\n  \n  // 无日期字段\n  return \"未填写日期\";\n};\n\n// 4. 格式化总数据（allStatistic）- 时区修正后\nconst formattedAllStatistic = allStatisticRaw?.data?.items?.map(item => ({\n  \"日期\": parseFeishuDate(item.fields?.日期), // 已修正时区\n  \"总不合格重量(kg)\": getFeishuText(item.fields[\"总不合格重量(kg)\"]),\n  \"总原料重量(kg)\": getFeishuText(item.fields[\"总原料重量(kg)\"]),\n  \"总合格占比\": getFeishuText(item.fields[\"总合格占比\"]),\n  \"总合格重量(kg)\": getFeishuText(item.fields[\"总合格重量(kg)\"])\n})) || [];\n\n// 5. 格式化员工数据（employeeStatistic）- 时区修正后\nconst formattedEmployeeStatistic = employeeStatisticRaw?.data?.items?.map(item => ({\n  \"日期\": parseFeishuDate(item.fields?.日期), // 已修正时区\n  \"员工姓名\": getFeishuText(item.fields[\"员工姓名\"]),\n  \"不合格重量(kg)\": getFeishuText(item.fields[\"不合格重量(kg)\"]),\n  \"出成率\": getFeishuText(item.fields[\"出成率\"]),\n  \"原料重量(kg)\": getFeishuText(item.fields[\"原料重量(kg)\"]),\n  \"合格重量(kg)\": getFeishuText(item.fields[\"合格重量(kg)\"])\n})) || [];\n\n// 6. 输出调试日志（可选，验证日期是否正确）\nconst realDates = [...new Set(formattedEmployeeStatistic.map(item => item.日期).filter(d => d !== \"未填写日期\"))];\nconsole.log(\"修正时区后的真实日期：\", realDates);\n\n// 7. 最终返回数据（包含时区修正后的日期）\nreturn {\n  \"备注\": `时区修正后有效日期：${realDates.join(\",\")}`, // 便于AI识别\n  \"allStatistic\": formattedAllStatistic,\n  \"employeeStatistic\": formattedEmployeeStatistic\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        0
+      ],
+      "id": "b3a5efb8-92c9-49cb-9113-7b08ea238e18",
+      "name": "Merge feishu data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### 核心任务\n1. 解析用户问题中的时间描述（如“昨天/这四天/近一周”），基于东八区当前时间推算绝对日期范围；\n2. 从数据源中筛选该日期范围的真实数据（仅使用存在的日期/数值）；\n3. 生成聚焦、精准的Markdown分析报告，禁止编造任何不存在的信息。\n\n### 输入信息（完整上下文）\n1. 用户问题：{{ $('Webhook').item.json.body.chatInput }}\n2. 当前东八区时间：{{ new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }}\n3. 完整数据源（时区修正后，仅以下数据真实有效）：{{ JSON.stringify($node[\"Merge feishu data\"].json, null, 2) }}\n4. 数据源有效日期列表：{{ JSON.stringify([...new Set($node[\"Merge feishu data\"].json.employeeStatistic.map(item => item.日期).filter(d => d !== \"未填写日期\"))]) }}\n\n### 强制执行规则（优先级最高）\n#### 步骤1：时间推算规则（必须先完成）\n- 基于「当前东八区时间」推算相对时间：\n  ✅ “昨天”→ 前1天（如2025-12-25 → 2025-12-24）；\n  ✅ “这四天”→ 当前日期-3天 至 当前日期（如2025-12-22至2025-12-25）；\n  ✅ “近一周”→ 当前日期-6天 至 当前日期；\n  ✅ “上周五”→ 最近的早于当前日期的周五；\n  ✅ “本月上旬”→ 当月1日至10日；\n  ✅ 无时间描述（如“工厂总产量”）→ 不筛选日期，使用全部数据；\n- 推算后记录：日期类型（single=单日期/range=范围/all=全部）、起始日期、结束日期、时间说明（如“这四天（2025-12-22至2025-12-25）”）。\n\n#### 步骤2：数据筛选规则（仅用真实数据）\n- 单日期（如“昨天”）→ 仅筛选该日期的记录；\n- 日期范围（如“这四天”）→ 仅筛选范围内的记录；\n- 无时间描述→ 使用全部数据；\n- 若筛选后无数据，直接说明“暂无XX日期数据”，禁止编造任何信息。\n\n#### 步骤3：报告格式规则（Markdown）\n1. 标题：包含时间说明（如“工厂这四天（2025-12-22至2025-12-25）生产情况分析”）；\n2. 结构：\n   - 数据概览：汇总核心指标（总产量/平均出成率等）；\n   - 明细表格：仅展示筛选后的真实数据，无数据则省略表格；\n   - 核心结论：基于真实数据得出，无数据则说明“未查询到XX日期的有效记录”；\n3. 禁止行为：\n   ❌ 禁止编造日期/数值/员工；\n   ❌ 禁止输出数据源中不存在的信息；\n   ❌ 禁止添加无关的改进建议（仅用户问“建议”时才输出）。\n ❌ 禁止展示步骤1和2类似推算相关的内容\n\n### 示例输出（覆盖不同场景）\n#### 示例1：用户问“工厂这四天的生产情况如何”（有数据）\n# 工厂这四天（2025-12-22至2025-12-25）生产情况分析\n## 一、数据概览\n- 总原料重量：680.5kg\n- 总合格重量：625.8kg\n- 总合格占比：91.96%\n- 总不合格重量：3.2kg\n\n## 二、生产明细\n| 日期       | 员工姓名 | 原料重量(kg) | 合格重量(kg) | 出成率 |\n|------------|----------|--------------|--------------|--------|\n| 2025-12-23 | 石丹     | 89.690       | 77.155       | 86.02% |\n| 2025-12-25 | 石丹     | 26.905       | 25.870       | 96.15% |\n| 2025-12-23 | 王艳     | 88.000       | 78.450       | 89.15% |\n| 2025-12-25 | 王艳     | 31.815       | 27.545       | 86.58% |\n\n## 三、核心结论\n这四天工厂累计原料重量680.5kg，石丹的平均出成率（91.09%）高于王艳（87.87%）。\n\n#### 示例2：用户问“工厂昨天的生产情况如何”（无数据）\n# 工厂昨天（2025-12-24）生产情况分析\n## 一、数据概览\n暂无2025-12-24的生产数据。\n\n## 二、核心结论\n数据源中未查询到昨天（2025-12-24）的任何生产记录，有效日期仅包含2025-12-23、2025-12-25。\n\n#### 示例3：用户问“石丹本周绩效如何”（单员工+时间段）\n# 石丹本周（2025-12-22至2025-12-28）绩效分析\n## 一、数据概览\n石丹本周仅查询到2天有效数据，累计原料重量116.595kg，平均出成率91.09%，不合格重量0.240kg。\n\n## 二、绩效明细\n| 日期       | 原料重量(kg) | 合格重量(kg) | 出成率 | 不合格重量(kg) |\n|------------|--------------|--------------|--------|----------------|\n| 2025-12-23 | 89.690       | 77.155       | 86.02% | 0.200          |\n| 2025-12-25 | 26.905       | 25.870       | 96.15% | 0.040          |\n\n## 三、核心结论\n石丹本周出成率波动较大（86.02%-96.15%），不合格重量主要集中在12月23日（0.200kg）。",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "10c9bd60-4988-43d6-9fdc-51dd9d99796a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        240
+      ],
+      "id": "72c9fe79-1c4b-4a59-b0da-ded86969c3cd",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "bbxetBHK56SfIClw",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d492e45e-239a-4a7f-817f-4535975b91c1",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1040,
+        0
+      ],
+      "id": "72a8a4bf-5398-42ad-b860-c387fc2f5b1c",
+      "name": "Webhook",
+      "webhookId": "d492e45e-239a-4a7f-817f-4535975b91c1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae5970fa-b299-4961-82b5-85bc5355d4d7",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        0
+      ],
+      "id": "a9e1e758-bfa3-47d2-bd4e-e2ee83b37875",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get data from all statistic": {
+      "main": [
+        [
+          {
+            "node": "Get employee statistic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get employee statistic": {
+      "main": [
+        [
+          {
+            "node": "Merge feishu data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge feishu data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get data from all statistic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "08afdec1-1c4c-4d8e-adab-b4b399a924a2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a2273711b4aea9d7d7574d8030e43adacae126bfdd44e135f1c866833d5f0aba"
+  },
+  "id": "RbfZNWY4uvQKQXPv",
+  "tags": []
+}
