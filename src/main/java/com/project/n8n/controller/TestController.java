@@ -14,6 +14,5 @@ public class TestController {
     public String n8n() {
         // 直接返回视图名（Freemarker会自动拼接 suffix: .html）
         return "aiReplay";
-
     }
 }
